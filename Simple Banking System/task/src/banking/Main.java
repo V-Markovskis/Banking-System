@@ -1,4 +1,5 @@
 package banking;
+
 import org.sqlite.SQLiteDataSource;
 
 import java.sql.*;
@@ -21,7 +22,6 @@ public class Main {
     private static long newBalance;
     private static long moneyRemaining;
     private static String cardNumberInput;
-    private static long moneySend;
     private static ResultSet resultSet;
 
 
@@ -33,16 +33,12 @@ public class Main {
         connection = dataSource.getConnection();
         statement = connection.createStatement();
 
-        statement.executeUpdate("CREATE TABLE IF NOT EXISTS card" +
-                "(id INT PRIMARY KEY, " +
-                "number TEXT NOT NULL, " +
-                "pin TEXT NOT NULL, " +
-                "balance INTEGER DEFAULT 0)");
+        statement.executeUpdate("CREATE TABLE IF NOT EXISTS card" + "(id INT PRIMARY KEY, " + "number TEXT NOT NULL, " + "pin TEXT NOT NULL, " + "balance INTEGER DEFAULT 0)");
 
         String input;
         boolean isRunning = true;
 
-        while(isRunning) {
+        while (isRunning) {
             System.out.println("1. Create an account\n2. Log into account\n0. Exit");
             input = sc.next();
 
@@ -103,6 +99,7 @@ public class Main {
             }
         }
     }
+
     private static void createAnAccount() throws SQLException {
         boolean check;
         int checkSum;
@@ -129,7 +126,7 @@ public class Main {
 
             int total = 0;
             for (int i = 0; i < creditCardInt.length; i++) {
-                total+= creditCardInt[i];
+                total += creditCardInt[i];
             }
 
             if (total % 10 != 0) {
@@ -162,7 +159,9 @@ public class Main {
 
         Map<String, Integer> cardDataByNumberAndPins = getCardDataByNumberAndPins(cardNumberInput, pinInput);
         if (cardDataByNumberAndPins.containsKey(cardNumberInput) && cardDataByNumberAndPins.containsValue(pinInput)) {
-            cardMap.put(cardNumberInput,pinInput);
+            cardMap.put(cardNumberInput, pinInput);
+            getBalanceFromTable(cardNumberInput);
+            balanceMap.put(cardNumber, newBalance);
             System.out.println("\nYou have successfully logged in!");
             return customerMenu(cardNumberInput);
         } else {
@@ -174,7 +173,7 @@ public class Main {
     private static boolean customerMenu(String cardNumberInput) throws SQLException {
         String input;
         boolean isRunning = true;
-        Map<String, Long> balanceFromTable = getBalanceFromTable(cardNumberInput, newBalance);
+        Map<String, Long> balanceFromTable = getBalanceFromTable(cardNumberInput);
         if (balanceFromTable.containsKey(cardNumberInput) && balanceFromTable.containsValue(newBalance)) {
             balanceMap.put(cardNumberInput, newBalance);
         }
@@ -212,6 +211,7 @@ public class Main {
         }
         return true;
     }
+
     private static void addIncome(String cardNumberInput) throws SQLException {
         //add income method here
         long increment;
@@ -224,7 +224,7 @@ public class Main {
 
         String updateIncome = "UPDATE card SET balance = ? WHERE number = ?";
         preparedStatement = connection.prepareStatement(updateIncome);
-        preparedStatement.setLong(1,newBalance);
+        preparedStatement.setLong(1, newBalance);
         preparedStatement.setString(2, cardNumberInput);
         preparedStatement.executeUpdate();
     }
@@ -254,27 +254,27 @@ public class Main {
 
         int total = 0;
         for (int i = 0; i < creditCardInt.length; i++) {
-            total+= creditCardInt[i];
+            total += creditCardInt[i];
         }
 
         if (total % 10 != 0) {
             System.out.println("Probably you made a mistake in the card number. Please try again!");
         } else {
-            ifExists();
+            ifExists(cardNumber);
         }
     }
 
-    private static void ifExists() throws SQLException {
+    private static void ifExists(String toCardNumber) throws SQLException {
         Statement statement = connection.createStatement();
-        resultSet = statement.executeQuery("SELECT * FROM card WHERE number = " + cardNumber);
+        resultSet = statement.executeQuery("SELECT * FROM card WHERE number = " + toCardNumber);
         if (resultSet.next()) {
-            doTransferAfterValidation();
+            doTransferAfterValidation(toCardNumber);
         } else {
             System.out.println("Such a card does not exist.");
         }
     }
 
-    private static void doTransferAfterValidation() throws SQLException {
+    private static void doTransferAfterValidation(String toCardNumber) throws SQLException {
         System.out.println("Enter how much money you want to transfer:\n");
         money = sc.nextInt();
 
@@ -284,35 +284,35 @@ public class Main {
             moneyRemaining = balanceMap.get(cardNumberInput) - money;
             System.out.println("Success!");
             balanceMap.put(cardNumberInput, moneyRemaining);
+            newBalance = moneyRemaining;
 
             statement.executeUpdate("UPDATE card SET balance = " + moneyRemaining + " WHERE number = " + cardNumberInput);
         }
 
-
-        moneySend = balanceMap.get(cardNumber) + money;
-        balanceMap.put(cardNumber, moneySend);
-        statement.executeUpdate("UPDATE card SET balance = " + moneySend + " WHERE number = " + cardNumber);
+        statement.executeUpdate("UPDATE card SET balance = " + money + " WHERE number = " + toCardNumber);
     }
 
     private static void closeAccount() throws SQLException {
-        statement.executeUpdate("DELETE FROM card WHERE number = '" + cardMap.get(cardNumberInput) + "';");
+        statement.executeUpdate("DELETE FROM card WHERE number = '" + cardNumberInput + "';");
         cardMap.remove(cardNumberInput);
         System.out.println("The account has been closed!");
     }
+
     private static final Map<String, Integer> getCardDataByNumberAndPins(String number, Integer pin) throws SQLException {
-        ResultSet result = statement.executeQuery("SELECT * FROM card WHERE number LIKE " + number + " AND pin LIKE " + pin + ";" );
+        ResultSet result = statement.executeQuery("SELECT * FROM card WHERE number LIKE " + number + " AND pin LIKE " + pin + ";");
         Map<String, Integer> resultMap = new HashMap<>();
         while (result.next()) {
-            resultMap.put(result.getString("number"),result.getInt("pin"));
+            resultMap.put(result.getString("number"), result.getInt("pin"));
         }
         return resultMap;
     }
 
-    private static final Map<String, Long> getBalanceFromTable(String number, Long balance) throws SQLException {
-        ResultSet result = statement.executeQuery("SELECT * FROM card WHERE number LIKE " + number + " AND balance LIKE " + balance + ";" );
+    private static final Map<String, Long> getBalanceFromTable(String number) throws SQLException {
+        ResultSet result = statement.executeQuery("SELECT * FROM card WHERE number LIKE " + number + ";");
         Map<String, Long> balanceFromTable = new HashMap<>();
         while (result.next()) {
-            balanceFromTable.put(result.getString("number"),result.getLong("balance"));
+            long balance = result.getLong("balance");
+            balanceFromTable.put(result.getString("number"), balance);
             newBalance = balance;
         }
         return balanceFromTable;
