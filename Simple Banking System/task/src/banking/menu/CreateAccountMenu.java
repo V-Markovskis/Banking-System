@@ -2,7 +2,6 @@ package banking.menu;
 
 import banking.CardService;
 
-import java.util.Optional;
 import java.util.Random;
 
 public class CreateAccountMenu {
