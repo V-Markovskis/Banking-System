@@ -31,6 +31,7 @@ public class CardDatabaseUtils {
         return INSTANCE;
     }
 
+    // Прикол в том, что нельзя создавать несколько сущностей классов, которые держут соединение с базой. Да и вообще любой сервис-класс должен быть создан в одном экземпляре (такой класс называется Singleton). CardService тоже должен быть Singleton.
     private CardDatabaseUtils() {
     }
 
