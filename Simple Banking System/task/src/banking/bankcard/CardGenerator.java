@@ -1,7 +1,5 @@
 package banking.bankcard;
 
-import banking.bankcard.Card;
-
 import java.util.Random;
 
 public class CardGenerator {
